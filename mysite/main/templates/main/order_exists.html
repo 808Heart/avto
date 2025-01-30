@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Заказ уже существует</title>
+</head>
+<body>
+    <h1>Вы уже заказали {{ car.name }}</h1>
+    <p>Вы можете проверить заказ в <a href="{% url 'profile' %}">профиле</a>.</p>
+    <a href="{% url 'car_list' %}">Вернуться в каталог</a>
+</body>
+</html>

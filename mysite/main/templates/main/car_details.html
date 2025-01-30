@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ car.name }}</title>
+</head>
+<body>
+        <h1>{{ car.name }}</h1>
+    <img src="{{ car.image.url }}" alt="{{ car.name }}" width="400">
+    <p>Цена: {{ car.price }} ₽</p>
+
+    {% if user.is_authenticated %}
+        <a href="{% url 'make_order' car.id %}">
+            <button>Купить</button>
+        </a>
+    {% else %}
+        <p><a href="{% url 'login' %}">Войдите</a>, чтобы купить машину.</p>
+    {% endif %}
+
+    <a href="{% url 'car_list' %}">Назад в каталог</a>
+
+</body>
+</html>

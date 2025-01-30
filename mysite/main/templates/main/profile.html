@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мои заказы</title>
+</head>
+<body>
+    <h1>Мои заказы</h1>
+
+    {% if orders %}
+        <ul>
+            {% for order in orders %}
+                <li>
+                    {{ order.car.name }} - {{ order.car.price }} ₽ (Заказ от {{ order.date }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Вы ещё не сделали заказов.</p>
+    {% endif %}
+
+    <br>
+
+    <a href="{% url 'car_list' %}">Вернуться в каталог</a>
+
+    <form method="post" action="{% url 'logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit">Выйти</button>
+    </form>
+</body>
+</html>

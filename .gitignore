@@ -1,0 +1,37 @@
+# Исключаем виртуальное окружение
+venv/
+.Venv/
+env/
+.Env/
+*.pyc
+*.pyo
+__pycache__/
+*.sqlite3-journal
+
+# Исключаем файлы IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Исключаем временные файлы ОС
+.DS_Store
+Thumbs.db
+
+# Исключаем файлы логов
+*.log
+logs/
+debug.log
+
+# Исключаем статические и медиа-файлы (но не базу данных)
+static/
+media/
+
+# Исключаем файлы миграций (если хочешь хранить только финальные)
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# Исключаем секретные файлы
+.env
+config.json
+settings_local.py

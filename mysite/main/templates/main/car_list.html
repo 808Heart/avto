@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Каталог автомобилей</title>
+</head>
+<body>
+    <h1>Каталог автомобилей</h1>
+    <ul>
+        {% for car in cars %}
+            <li>
+                <a href="{% url 'car_detail' car.id %}">{{ car.name }}</a> - {{ car.price }} ₽
+                <br>
+                <img src="{{ car.image.url }}" alt="{{ car.name }}" width="200">
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
