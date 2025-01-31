@@ -2,15 +2,69 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Вход</title>
+
+    <!-- Загрузка тега для статических файлов -->
+    {% load static %}
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 </head>
-<body>
-    <h2>Вход</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Войти</button>
-    </form>
-    <p>Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+<body class="bg-light">
+
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'car_list' %}">Авто Салон</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'car_list' %}">Главная</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-success" href="{% url 'login' %}"><i class="bi bi-box-arrow-in-right"></i> Войти</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Контейнер для контента страницы -->
+    <div class="container mt-5 d-flex justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <h2 class="text-center mb-4">Вход в личный кабинет</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-dark w-100">Войти</button>
+                    </form>
+                    <p class="text-center mt-3">Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подвал сайта -->
+    <footer class="bg-dark text-light text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-1">&copy; 2025 Авто Салон. Все права защищены.</p>
+            <p class="small">
+                <a href="#" class="text-light">Политика конфиденциальности</a> | 
+                <a href="#" class="text-light">Контакты</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

@@ -70,13 +70,18 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Статические файлы
 STATICFILES_DIRS = [
     BASE_DIR / "main/static",
 ]
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Настройка редиректов
 LOGIN_REDIRECT_URL = '/profile/'
 LOGOUT_REDIRECT_URL = 'login'
+AUTH_USER_MODEL = 'main.User' 

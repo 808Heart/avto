@@ -1,29 +1,40 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Избранное</title>
-</head>
-<body>
-    <h1>Избранные автомобили</h1>
+{% extends 'main/base.html' %}
+
+{% load static %}  
+
+{% block title %}Избранные автомобили{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">Избранные автомобили</h1>
 
     {% if cars %}
-        <ul>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
             {% for car in cars %}
-                <li>
-                    <a href="{% url 'car_detail' car.id %}">{{ car.name }}</a> - {{ car.price }} ₽
-                    <br>
-                    <img src="{{ car.image.url }}" width="150">
-                    <br>
-                    <a href="{% url 'remove_from_favorites' car.id %}">Удалить из избранного</a>
-                </li>
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    {% if car.image %}
+                        <img src="{{ car.image.url }}" class="card-img-top" alt="{{ car.name }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <!-- Здесь подключаем статику для изображения по умолчанию -->
+                        <img src="{% static 'no_image.jpg' %}" class="card-img-top" alt="Нет изображения" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ car.name }}</h5>
+                        <p class="card-text">Цена: {{ car.price }} ₽</p>
+                        <a href="{% url 'car_detail' car.id %}" class="btn btn-primary btn-sm">Подробнее</a>
+                        <a href="{% url 'remove_from_favorites' car.id %}" class="btn btn-danger btn-sm float-end">Удалить</a>
+                    </div>
+                </div>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
-        <p>Вы ещё не добавили автомобили в избранное.</p>
+        <p class="text-center">Вы ещё не добавили автомобили в избранное.</p>
     {% endif %}
 
-    <br>
-    <a href="{% url 'car_list' %}">Вернуться в каталог</a>
-</body>
-</html>
+    <div class="text-center mt-4">
+        <a href="{% url 'car_list' %}" class="btn btn-outline-secondary">Вернуться в каталог</a>
+    </div>
+</div>
+{% endblock %}

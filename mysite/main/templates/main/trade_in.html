@@ -1,11 +1,12 @@
 {% extends 'main/base.html' %}
+
 {% block title %}Trade-In{% endblock %}
 
 {% block content %}
 <div class="container my-5">
     <h1 class="text-center mb-4">Оценка автомобиля по программе Trade-In</h1>
 
-    <form action="{% url 'trade_in' %}" method="POST">
+    <form action="{% url 'trade_in' %}" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="mb-3">
             <label for="brand" class="form-label">Марка автомобиля</label>
@@ -30,6 +31,11 @@
         <div class="mb-3">
             <label for="estimated_price" class="form-label">Оценочная стоимость</label>
             <input type="number" class="form-control" id="estimated_price" name="estimated_price" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="photos" class="form-label">Фотографии автомобиля</label>
+            <input type="file" class="form-control" id="photos" name="photos" multiple>
         </div>
 
         <div class="text-center">

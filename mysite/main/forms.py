@@ -1,17 +1,27 @@
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, Review
 from django import forms
-from .models import TradeInRequest
-from .models import TestDriveRequest,Order,Car
+from django.contrib.auth import get_user_model  # This imports the user model dynamically
+from .models import Review, TradeInRequest, TestDriveRequest, Order, Car
+
+# Use get_user_model() to reference your custom user model dynamically
+User = get_user_model()
 
 class TradeInForm(forms.ModelForm):
     class Meta:
         model = TradeInRequest
-        fields = ['brand', 'model', 'year', 'mileage', 'estimated_price']
+        fields = ['brand', 'model', 'year', 'mileage', 'estimated_price', 'photo']  # Добавляем поле фото
+        widgets = {
+            'photo': forms.ClearableFileInput(attrs={'multiple': False}),  # Поддержка одного файла
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(TradeInForm, self).__init__(*args, **kwargs)
+        self.fields['photo'].required = False  # Сделаем поле фотографий необязательным
+
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
-        model = User  
-        fields = ('username', 'email', 'password1', 'password2') 
+        model = User  # Now using the custom user model dynamically
+        fields = ('username', 'email', 'password1', 'password2')
 
 class ReviewForm(forms.ModelForm):
     parent = forms.ModelChoiceField(queryset=Review.objects.all(), required=False, widget=forms.HiddenInput())
@@ -25,8 +35,6 @@ class ReviewForm(forms.ModelForm):
         if self.instance.parent: 
             self.fields.pop('rating', None)
 
-from .models import TestDriveRequest
-
 class TestDriveForm(forms.ModelForm):
     class Meta:
         model = TestDriveRequest
@@ -36,12 +44,12 @@ class TestDriveForm(forms.ModelForm):
             'time': forms.TimeInput(attrs={'type': 'time'}),
             'phone': forms.TextInput(attrs={'placeholder': 'Ваш телефон'}),
         }
+
 class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = ['name', 'email', 'address', 'phone']
         
-
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
         if len(phone) != 10:

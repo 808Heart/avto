@@ -11,13 +11,13 @@ from .models import TestDriveRequest
 from django.contrib.auth.forms import UserCreationForm
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
             return redirect('profile')  # После регистрации перенаправляем на профиль
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
 
     return render(request, 'main/register.html', {'form': form})
 User = get_user_model()
@@ -142,34 +142,50 @@ def profile(request):
         'test_drive_requests': test_drive_requests,
     })
 
-
+from .models import TradeInPhoto 
 @login_required
 def trade_in(request):
-    if request.method == 'POST':
-        # Получаем данные из формы
-        brand = request.POST.get('brand')
-        model = request.POST.get('model')
-        year = request.POST.get('year')
-        mileage = request.POST.get('mileage')
-        estimated_price = request.POST.get('estimated_price')
+    if request.method == "POST":
+        form = TradeInForm(request.POST, request.FILES)
+        if form.is_valid():
+            trade_in_request = form.save(commit=False)
+            trade_in_request.user = request.user
+            trade_in_request.save()
 
-        # Создаем заявку на Trade-In
-        trade_in_request = TradeInRequest(
-            user=request.user,
-            brand=brand,
-            model=model,
-            year=year,
-            mileage=mileage,
-            estimated_price=estimated_price
-        )
-        trade_in_request.save()
+            if hasattr(trade_in_request, 'photos'):
+                for photo in request.FILES.getlist('photos'):
+                    TradeInPhoto.objects.create(trade_in_request=trade_in_request, image=photo)
 
-        # Перенаправляем на страницу профиля с сообщением о успешной подаче заявки
+            return redirect('profile')
+    else:
+        form = TradeInForm()
+
+    return render(request, 'main/trade_in.html', {'form': form})
+@login_required
+def manage_trade_in(request):
+    if request.user.is_staff:
+        trade_in_requests = TradeInRequest.objects.filter(status='pending')
+
+        if request.method == "POST":
+            trade_in_request_id = request.POST.get('trade_in_request_id')
+            status = request.POST.get('status')
+            admin_message = request.POST.get('admin_message')
+
+            trade_in_request = get_object_or_404(TradeInRequest, id=trade_in_request_id)
+            trade_in_request.status = status
+            trade_in_request.admin_message = admin_message
+            trade_in_request.save()
+
+            if status == 'approved':
+                car = Car.objects.get(id=request.POST.get('car_id'))
+                car.price -= trade_in_request.estimated_price  # Применяем скидку
+                car.save()
+
+            return redirect('manage_trade_in')
+
+        return render(request, 'main/manage_trade_in.html', {'trade_in_requests': trade_in_requests})
+    else:
         return redirect('profile')
-
-    return render(request, 'main/trade_in.html')
-
-
 @login_required
 def make_order(request, car_id):
     car = Car.objects.get(id=car_id)
@@ -268,8 +284,9 @@ def remove_accessory_from_favorites(request, accessory_id):
 
 
 def accessories(request):
-    accessories = Accessory.objects.all()
+    accessories = Accessory.objects.all()  
     return render(request, 'main/accessories.html', {'accessories': accessories})
+
 
 @login_required
 def buy_accessory(request, accessory_id):
@@ -282,28 +299,24 @@ def buy_accessory(request, accessory_id):
 
     return redirect('profile')
 
+from django.shortcuts import render, redirect
+from .models import Accessory, Cart, CartItem
 @login_required
-def add_to_cart(request, car_id):
-    if 'cart' not in request.session:
-        request.session['cart'] = {}
+def add_to_cart(request, accessory_id):
+    accessory = get_object_or_404(Accessory, id=accessory_id)
 
-    cart = request.session['cart']
+    # Получаем корзину пользователя (или создаем новую, если ее нет)
+    cart, created = Cart.objects.get_or_create(user=request.user)
 
-    if str(car_id) in cart:
-        cart[str(car_id)] += 1
-    else:
-        cart[str(car_id)] = 1
+    # Проверяем, есть ли уже этот аксессуар в корзине
+    cart_item, created = CartItem.objects.get_or_create(cart=cart, accessory=accessory)
 
-    request.session.modified = True
-    return redirect('cart') 
+    # Если аксессуар уже есть в корзине, увеличиваем его количество
+    if not created:
+        cart_item.quantity += 1
+        cart_item.save()
 
-def remove_from_cart(request, accessory_id):
-    if 'cart' in request.session and str(accessory_id) in request.session['cart']:
-        del request.session['cart'][str(accessory_id)]
-        request.session.modified = True
-
-    return redirect('cart')
-
+    return redirect('cart')  # перенаправляем в корзину
 
 @login_required
 def cart(request):
@@ -399,3 +412,26 @@ def checkout(request, car_id):
     
     # Отправляем данные о машине на страницу оформления
     return render(request, 'main/checkout.html', {'car': car})
+
+
+from django.shortcuts import render
+from .models import Accessory
+
+def accessory_list(request):
+    accessories = Accessory.objects.all()
+    return render(request, 'main/accessory_list.html', {'accessories': accessories})
+
+@login_required
+def remove_from_cart(request, accessory_id):
+    # Получаем корзину пользователя
+    cart = Cart.objects.filter(user=request.user).first()
+
+    if cart:
+        # Находим item корзины с данным аксессуаром
+        cart_item = CartItem.objects.filter(cart=cart, accessory__id=accessory_id).first()
+
+        if cart_item:
+            # Удаляем элемент из корзины
+            cart_item.delete()
+
+    return redirect('cart')  # Перенаправляем на страницу с корзиной

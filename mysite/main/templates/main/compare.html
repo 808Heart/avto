@@ -1,36 +1,43 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Сравнение автомобилей</title>
-</head>
-<body>
-    <h1>Сравнение автомобилей</h1>
+{% extends 'main/base.html' %}
+
+{% block title %}Сравнение автомобилей{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">Сравнение автомобилей</h1>
 
     {% if cars %}
-        <table border="1">
-            <tr>
-                <th>Название</th>
-                <th>Цена</th>
-                <th>Фото</th>
-                <th>Действие</th>
-            </tr>
-            {% for car in cars %}
-            <tr>
-                <td>{{ car.name }}</td>
-                <td>{{ car.price }} ₽</td>
-                <td><img src="{{ car.image.url }}" width="100"></td>
-                <td>
-                    <a href="{% url 'remove_from_compare' car.id %}">Удалить</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Цена</th>
+                        <th>Фото</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in cars %}
+                    <tr>
+                        <td>{{ car.name }}</td>
+                        <td>{{ car.price }} ₽</td>
+                        <td><img src="{{ car.image.url }}" width="100" alt="{{ car.name }}"></td>
+                        <td>
+                            <a href="{% url 'remove_from_compare' car.id %}" class="btn btn-danger btn-sm">
+                                Удалить
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p>Вы ещё не выбрали автомобили для сравнения.</p>
+        <p class="text-center">Вы ещё не выбрали автомобили для сравнения.</p>
     {% endif %}
 
     <br>
-    <a href="{% url 'car_list' %}">Вернуться в каталог</a>
-</body>
-</html>
+    <div class="d-flex justify-content-center">
+        <a href="{% url 'car_list' %}" class="btn btn-secondary btn-lg">Вернуться в каталог</a>
+    </div>
+{% endblock %}

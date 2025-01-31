@@ -2,11 +2,18 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Car, CarImage, Order, Review, TradeInRequest, Brand, Accessory, AccessoryOrder, TestDriveRequest
 
-# Регистрация пользователя в админке
+# Регистрация пользователя в админке с добавлением поля аватара
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'is_staff', 'is_active')
+    list_display = ('username', 'email', 'is_staff', 'is_active', 'avatar')  # Добавляем avatar в список отображаемых полей
     search_fields = ('username', 'email')
+
+    fieldsets = UserAdmin.fieldsets + (
+        (None, {'fields': ('avatar',)}),  # Добавляем поле аватара
+    )
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (None, {'fields': ('avatar',)}),  # Добавляем поле аватара при создании нового пользователя
+    )
 
 # Регистрация брендов в админке
 @admin.register(Brand)
@@ -43,29 +50,19 @@ class ReviewAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'car__name')
     ordering = ('-created_at',)
 
-# Регистрация Trade-In заявок в админке
 @admin.register(TradeInRequest)
 class TradeInRequestAdmin(admin.ModelAdmin):
-    list_display = ('user', 'brand', 'model', 'year', 'mileage', 'estimated_price', 'status', 'created_at')
+    list_display = ('user', 'brand', 'model', 'status', 'created_at')
     list_filter = ('status',)
-    search_fields = ('brand', 'model', 'user__username')
-    ordering = ('-created_at',)
     actions = ['approve_trade_in', 'reject_trade_in']
 
     def approve_trade_in(self, request, queryset):
-        for trade_request in queryset:
-            trade_request.status = 'approved'
-            trade_request.admin_message = "Ваш Trade-in одобрен! Сумма вычтена из стоимости автомобиля."
-            trade_request.save()
+        queryset.update(status='approved', admin_message="Заявка одобрена")
+    approve_trade_in.short_description = "Одобрить заявки на Trade-In"
 
     def reject_trade_in(self, request, queryset):
-        for trade_request in queryset:
-            trade_request.status = 'rejected'
-            trade_request.admin_message = "К сожалению, ваш Trade-in отклонён."
-            trade_request.save()
-
-    approve_trade_in.short_description = "Одобрить Trade-in"
-    reject_trade_in.short_description = "Отклонить Trade-in"
+        queryset.update(status='rejected', admin_message="Заявка отклонена")
+    reject_trade_in.short_description = "Отклонить заявки на Trade-In"
 
 # Регистрация аксессуаров в админке
 @admin.register(Accessory)
