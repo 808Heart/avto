@@ -1,31 +1,414 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Мои заказы</title>
-</head>
-<body>
-    <h1>Мои заказы</h1>
+{% extends 'main/base.html' %}
+{% load static %}
 
-    {% if orders %}
-        <ul>
-            {% for order in orders %}
-                <li>
-                    {{ order.car.name }} - {{ order.car.price }} ₽ (Заказ от {{ order.date }})
-                </li>
-            {% endfor %}
-        </ul>
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<!-- Небольшие стили для аватара и карточек -->
+<style>
+    .avatar {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+    }
+    /* Ограничиваем высоту изображения в карточках */
+    .card img {
+        object-fit: cover;
+    }
+</style>
+
+<!-- Заголовок и приветствие -->
+<div class="mb-4">
+    <h1 class="mb-1">Личный кабинет</h1>
+    <p class="text-muted">Добро пожаловать, {{ user.username }}!</p>
+</div>
+
+<!-- Блок с аватаром и именем пользователя -->
+<div class="d-flex align-items-center mb-5">
+    {% if user.avatar %}
+        <img src="{{ user.avatar.url }}" alt="Аватар" class="avatar me-3">
     {% else %}
-        <p>Вы ещё не сделали заказов.</p>
+        <img src="{% static 'default_avatar.png' %}" alt="Аватар" class="avatar me-3">
     {% endif %}
+    <div>
+        <h4 class="mb-0">{{ user.username }}</h4>
+    </div>
+</div>
 
-    <br>
+<!-- Основной контент: аккордеон с разделами -->
+<div class="accordion" id="cabinetAccordion">
 
-    <a href="{% url 'car_list' %}">Вернуться в каталог</a>
+    <!-- Заказанные автомобили -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingCars">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseCars" aria-expanded="false" aria-controls="collapseCars">
+                Заказанные автомобили
+            </button>
+        </h2>
+        <div id="collapseCars" class="accordion-collapse collapse" aria-labelledby="headingCars"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if car_orders %}
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for order in car_orders %}
+                        <div class="col">
+                            <div class="card h-100">
+                                {% if order.car.image %}
+                                    <img src="{{ order.car.image.url }}" 
+                                         class="card-img-top" 
+                                         alt="{{ order.car.name }}" 
+                                         style="height: 200px;">
+                                {% else %}
+                                    <img src="{% static 'no_image.jpg' %}" 
+                                         class="card-img-top" 
+                                         alt="Нет изображения" 
+                                         style="height: 200px;">
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'car_detail' order.car.id %}" class="text-decoration-none">
+                                            {{ order.car.name }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text fw-bold">Цена: {{ order.final_price }} ₽</p>
+                                    <div class="mt-auto">
+                                        <a href="{% url 'cancel_order' order.id %}" class="btn btn-sm btn-outline-danger">
+                                            Отменить заказ
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Вы ещё не заказывали автомобили.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Покупки аксессуаров -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingAccOrders">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseAccOrders" aria-expanded="false" aria-controls="collapseAccOrders">
+                Покупки аксессуаров
+            </button>
+        </h2>
+        <div id="collapseAccOrders" class="accordion-collapse collapse" aria-labelledby="headingAccOrders"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if accessory_orders %}
+                    <ul class="list-group">
+                        {% for order in accessory_orders %}
+                        <li class="list-group-item">
+                            <strong>{{ order.accessory.name }}</strong> — {{ order.quantity }} шт.
+                            <br>
+                            <small class="text-muted">Дата заказа: {{ order.date }}</small><br>
+                            <strong>Статус:</strong> {{ order.get_status_display }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Вы ещё не покупали аксессуары.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-    <form method="post" action="{% url 'logout' %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit">Выйти</button>
-    </form>
-</body>
-</html>
+    <!-- Избранные аксессуары -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingFavAcc">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseFavAcc" aria-expanded="false" aria-controls="collapseFavAcc">
+                Избранные аксессуары
+            </button>
+        </h2>
+        <div id="collapseFavAcc" class="accordion-collapse collapse" aria-labelledby="headingFavAcc"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if favorite_accessories %}
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for accessory in favorite_accessories %}
+                        <div class="col">
+                            <div class="card h-100">
+                                {% if accessory.image %}
+                                    <img src="{{ accessory.image.url }}" 
+                                         class="card-img-top" 
+                                         alt="{{ accessory.name }}" 
+                                         style="height: 200px;">
+                                {% else %}
+                                    <img src="{% static 'no_image.jpg' %}" 
+                                         class="card-img-top" 
+                                         alt="Нет изображения"
+                                         style="height: 200px;">
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">{{ accessory.name }}</h5>
+                                    <p class="card-text fw-bold">{{ accessory.price }} ₽</p>
+                                    <div class="mt-auto">
+                                        <a href="{% url 'remove_accessory_from_favorites' accessory.id %}"
+                                           class="btn btn-sm btn-outline-danger">
+                                            Удалить из избранного
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Вы ещё не добавили аксессуары в избранное.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Избранные автомобили -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingFavCars">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseFavCars" aria-expanded="false" aria-controls="collapseFavCars">
+                Избранные автомобили
+            </button>
+        </h2>
+        <div id="collapseFavCars" class="accordion-collapse collapse" aria-labelledby="headingFavCars"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if favorites %}
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for car in favorites %}
+                        <div class="col">
+                            <div class="card h-100">
+                                {% if car.image %}
+                                    <img src="{{ car.image.url }}" 
+                                         class="card-img-top" 
+                                         alt="{{ car.name }}" 
+                                         style="height: 200px;">
+                                {% else %}
+                                    <img src="{% static 'no_image.jpg' %}" 
+                                         class="card-img-top" 
+                                         alt="Нет изображения"
+                                         style="height: 200px;">
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">{{ car.name }}</h5>
+                                    <p class="card-text fw-bold">{{ car.price }} ₽</p>
+                                    <div class="mt-auto">
+                                        <a href="{% url 'remove_from_favorites' car.id %}" class="btn btn-sm btn-outline-danger">
+                                            Удалить из избранного
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Вы ещё не добавили автомобили в избранное.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Автомобили для сравнения -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingCompare">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseCompare" aria-expanded="false" aria-controls="collapseCompare">
+                Автомобили для сравнения
+            </button>
+        </h2>
+        <div id="collapseCompare" class="accordion-collapse collapse" aria-labelledby="headingCompare"
+            data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if compare %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Автомобиль</th>
+                                    {% for car in compare %}
+                                        <th>{{ car.name }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Бренд</strong></td>
+                                    {% for car in compare %}
+                                        <td>{{ car.brand.name }}</td>
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    <td><strong>Цена</strong></td>
+                                    {% for car in compare %}
+                                        <td>{{ car.price }} ₽</td>
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    <td><strong>Мощность</strong></td>
+                                    {% for car in compare %}
+                                        <td>{{ car.specifications.Horsepower|default:"—" }} л.с.</td>
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    <td><strong>Расход топлива</strong></td>
+                                    {% for car in compare %}
+                                        <td>{{ car.specifications.FuelConsumption|default:"—" }} л/100км</td>
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    <td><strong>Трансмиссия</strong></td>
+                                    {% for car in compare %}
+                                        <td>{{ car.specifications.Transmission|default:"—" }}</td>
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    <td><strong>Привод</strong></td>
+                                    {% for car in compare %}
+                                        <td>{{ car.specifications.DriveType|default:"—" }}</td>
+                                    {% endfor %}
+                                </tr>
+                                <tr>
+                                    <td colspan="{{ compare|length|add:1 }}">
+                                        <strong>Удалить из сравнения:</strong>
+                                        {% for car in compare %}
+                                            <a href="{% url 'remove_from_compare' car.id %}" class="btn btn-sm btn-danger">
+                                                Удалить {{ car.name }}
+                                            </a>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>Вы ещё не добавили автомобили для сравнения.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- История просмотров -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingHistory">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseHistory" aria-expanded="false" aria-controls="collapseHistory">
+                История просмотров
+            </button>
+        </h2>
+        <div id="collapseHistory" class="accordion-collapse collapse" aria-labelledby="headingHistory"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if history %}
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for car in history %}
+                        <div class="col">
+                            <div class="card h-100">
+                                {% if car.image %}
+                                    <img src="{{ car.image.url }}" 
+                                         class="card-img-top" 
+                                         alt="{{ car.name }}" 
+                                         style="height: 200px;">
+                                {% else %}
+                                    <img src="{% static 'no_image.jpg' %}" 
+                                         class="card-img-top" 
+                                         alt="Нет изображения"
+                                         style="height: 200px;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ car.name }}</h5>
+                                    <p class="card-text fw-bold">{{ car.price }} ₽</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Вы ещё не просматривали автомобили.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade-in заявки -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingTradeIn">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseTradeIn" aria-expanded="false" aria-controls="collapseTradeIn">
+                Trade-in заявки
+            </button>
+        </h2>
+        <div id="collapseTradeIn" class="accordion-collapse collapse" aria-labelledby="headingTradeIn"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if trade_in_requests %}
+                    <ul class="list-group">
+                        {% for request in trade_in_requests %}
+                        <li class="list-group-item">
+                            <p class="mb-1"><strong>{{ request.brand }} {{ request.model }}</strong> ({{ request.year }})</p>
+                            <p class="mb-1">Пробег: {{ request.mileage }} км</p>
+                            <p class="mb-1"><strong>Оценочная стоимость:</strong> {{ request.estimated_price }} ₽</p>
+                            <p class="mb-1"><strong>Статус:</strong> {{ request.get_status_display }}</p>
+                            {% if request.admin_message %}
+                                <p class="text-danger"><strong>Сообщение от администратора:</strong> {{ request.admin_message }}</p>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Вы ещё не подавали заявки на Trade-in.</p>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{% url 'trade_in' %}" class="btn btn-primary">Подать заявку на Trade-in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Мои заявки на тест-драйв -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingTestDrive">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseTestDrive" aria-expanded="false" aria-controls="collapseTestDrive">
+                Мои заявки на тест-драйв
+            </button>
+        </h2>
+        <div id="collapseTestDrive" class="accordion-collapse collapse" aria-labelledby="headingTestDrive"
+             data-bs-parent="#cabinetAccordion">
+            <div class="accordion-body">
+                {% if test_drive_requests %}
+                    <ul class="list-group">
+                        {% for request in test_drive_requests %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ request.car.name }}</strong> — {{ request.date }} в {{ request.time }}
+                                ({{ request.get_status_display }})
+                            </div>
+                            {% if request.status == "pending" %}
+                                <a href="{% url 'cancel_test_drive' request.id %}" class="btn btn-sm btn-dark">
+                                    Отменить
+                                </a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>У вас пока нет заявок на тест-драйв.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div> <!-- /accordion -->
+
+<!-- Ссылки для быстрого возврата -->
+<div class="mt-5 d-flex gap-2 flex-wrap">
+    <a href="{% url 'car_list' %}" class="btn btn-secondary">Вернуться в каталог</a>
+    <a href="{% url 'accessories' %}" class="btn btn-outline-secondary">Каталог аксессуаров</a>
+</div>
+{% endblock %}

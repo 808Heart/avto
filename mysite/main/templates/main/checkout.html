@@ -1,0 +1,52 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Оформление заказа{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">Оформление заказа</h1>
+
+    {% if car %}
+    <div>
+        <h3>{{ car.name }}</h3>
+        <p>Цена: {{ car.price }} ₽</p>
+        <p>Скидка Trade-In: {{ trade_in_discount }} ₽</p>
+        <p>Финальная цена: {{ final_price }} ₽</p>
+    </div>
+
+    <!-- Форма оформления заказа -->
+    <form action="{% url 'checkout' car.id %}" method="POST">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="name" class="form-label">Имя</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="address" class="form-label">Адрес</label>
+            <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+        </div>
+        
+        <div class="mb-3">
+            <label for="phone" class="form-label">Телефон</label>
+            <input type="text" class="form-control" id="phone" name="phone" required>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-success btn-lg">Подтвердить заказ</button>
+        </div>
+    </form>
+
+    {% else %}
+        <p>Не удалось найти автомобиль для оформления.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

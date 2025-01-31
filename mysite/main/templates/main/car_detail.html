@@ -1,13 +1,85 @@
-<h1>{{ car.name }}</h1>
-<img src="{{ car.image.url }}" alt="{{ car.name }}" width="400">
-<p>Цена: {{ car.price }} ₽</p>
+{% extends 'main/base.html' %}
+{% load static %}
 
-{% if user.is_authenticated %}
-    <a href="{% url 'make_order' car.id %}">
-        <button>Купить</button>
-    </a>
-{% else %}
-    <p><a href="{% url 'login' %}">Войдите</a>, чтобы купить машину.</p>
-{% endif %}
+{% block title %}{{ car.name }}{% endblock %}
 
-<a href="{% url 'car_list' %}">Назад в каталог</a>
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">{{ car.name }}</h1>
+
+    <!-- Галерея фото -->
+    <div id="carCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            {% for image in car.images.all %}
+                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                    <img src="{{ image.image.url }}" class="d-block w-100" alt="{{ car.name }}">
+                </div>
+            {% endfor %}
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+
+    <!-- Описание -->
+    <div class="mb-5">
+        <h3 class="fw-bold">Описание</h3>
+        <p>{{ car.description|default:"Описание скоро появится" }}</p>
+    </div>
+
+    <!-- Характеристики -->
+    <div class="mb-5">
+        <h3 class="fw-bold">Характеристики</h3>
+        {% if car.specifications %}
+        <table class="table table-bordered">
+            <tbody>
+                {% for key, value in car.specifications.items %}
+                <tr>
+                    <td><strong>{{ key }}</strong></td>
+                    <td>{{ value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>Характеристики скоро появятся.</p>
+        {% endif %}
+    </div>
+
+    <!-- Блок с действиями -->
+    <div class="mt-4 d-flex gap-3 justify-content-between">
+        <div class="d-flex gap-3">
+            <!-- Кнопка "Купить" -->
+            <a href="{% url 'checkout' car.id %}" class="btn btn-primary btn-lg">
+                Купить
+            </a>
+
+            <!-- Кнопка "Добавить в сравнение" -->
+            <form action="{% url 'add_to_compare' car.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-secondary btn-lg">
+                    Добавить в сравнение
+                </button>
+            </form>
+        </div>
+
+        <form action="{% url 'add_to_cart' car.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-cart-plus"></i> Добавить в корзину
+            </button>
+        </form>
+
+        <!-- Кнопка "Добавить в избранное" -->
+        <form action="{% url 'add_to_favorites' car.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-lg">
+                <i class="bi bi-heart"></i> Добавить в избранное
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

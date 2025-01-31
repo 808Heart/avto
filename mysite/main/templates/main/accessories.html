@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Аксессуары</title>
+</head>
+<body>
+    <h1>Каталог аксессуаров</h1>
+
+    {% if accessories %}
+        <ul>
+            {% for accessory in accessories %}
+                <li>
+                    <h3>{{ accessory.name }}</h3>
+                    {% if accessory.image %}
+                        <img src="{{ accessory.image.url }}" width="150">
+                    {% endif %}
+                    <p>{{ accessory.description }}</p>
+                    <p>Цена: {{ accessory.price }} ₽</p>
+                    <p>В наличии: {{ accessory.stock }}</p>
+                    <a href="{% url 'add_to_cart' accessory.id %}"><button>Добавить в корзину</button></a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Аксессуары отсутствуют.</p>
+    {% endif %}
+
+    <br>
+    <a href="{% url 'car_list' %}">Вернуться в каталог автомобилей</a>
+</body>
+</html>

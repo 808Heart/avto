@@ -1,0 +1,13 @@
+{% extends 'main/base.html' %}
+{% block title %}Запись на тест-драйв{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="text-center">Запись на тест-драйв</h2>
+    <form method="POST" class="mx-auto" style="max-width: 400px;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary w-100">Записаться</button>
+    </form>
+</div>
+{% endblock %}

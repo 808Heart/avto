@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Избранное</title>
+</head>
+<body>
+    <h1>Избранные автомобили</h1>
+
+    {% if cars %}
+        <ul>
+            {% for car in cars %}
+                <li>
+                    <a href="{% url 'car_detail' car.id %}">{{ car.name }}</a> - {{ car.price }} ₽
+                    <br>
+                    <img src="{{ car.image.url }}" width="150">
+                    <br>
+                    <a href="{% url 'remove_from_favorites' car.id %}">Удалить из избранного</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Вы ещё не добавили автомобили в избранное.</p>
+    {% endif %}
+
+    <br>
+    <a href="{% url 'car_list' %}">Вернуться в каталог</a>
+</body>
+</html>

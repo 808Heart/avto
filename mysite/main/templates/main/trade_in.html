@@ -1,0 +1,40 @@
+{% extends 'main/base.html' %}
+{% block title %}Trade-In{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">Оценка автомобиля по программе Trade-In</h1>
+
+    <form action="{% url 'trade_in' %}" method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="brand" class="form-label">Марка автомобиля</label>
+            <input type="text" class="form-control" id="brand" name="brand" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="model" class="form-label">Модель автомобиля</label>
+            <input type="text" class="form-control" id="model" name="model" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="year" class="form-label">Год выпуска</label>
+            <input type="number" class="form-control" id="year" name="year" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="mileage" class="form-label">Пробег (км)</label>
+            <input type="number" class="form-control" id="mileage" name="mileage" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="estimated_price" class="form-label">Оценочная стоимость</label>
+            <input type="number" class="form-control" id="estimated_price" name="estimated_price" required>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary btn-lg">Отправить заявку</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
