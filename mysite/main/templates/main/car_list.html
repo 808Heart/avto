@@ -6,15 +6,17 @@
 {% block content %}
 <div class="container my-5">
 
+    <!-- Заголовок страницы -->
     <h1 class="text-center mb-4 display-5 fw-semibold">Каталог автомобилей</h1>
 
+    <!-- Форма фильтрации и сортировки -->
     <form method="GET" class="row g-2 mb-5">
         <div class="col-md-3">
             <input 
                 type="text" 
                 name="search" 
                 class="form-control" 
-                placeholder="Поиск..." 
+                placeholder="Поиск по названию..." 
                 value="{{ search_query }}"
             >
         </div>
@@ -59,28 +61,51 @@
         </div>
     </form>
 
+    <!-- Отображение брендов -->
     <h2 class="mb-4">Бренды автомобилей</h2>
     <div class="row row-cols-2 row-cols-md-4 g-3">
         {% for brand in brands %}
-        <div class="col">
-            <div class="card h-100 text-center shadow-sm hover-zoom">
-                <div class="card-body d-flex flex-column justify-content-center">
-                    <h5 class="card-title mb-3">
-                        <a href="{% url 'brand_cars' brand.slug %}" class="text-decoration-none text-dark">
-                            {{ brand.name }}
-                        </a>
-                    </h5>
-                    <p class="card-text">
-                        Машин в наличии: <span class="fw-bold">{{ brand.car_count }}</span>
-                    </p>
+            <div class="col">
+                <div class="card h-100 text-center shadow-sm hover-zoom">
+                    <!-- Логотип бренда -->
+                    <a href="{% url 'brand_cars' brand.slug %}" class="text-decoration-none">
+                        {% if brand.logo %}
+                            <img 
+                                src="{{ brand.logo.url }}" 
+                                alt="{{ brand.name }}" 
+                                class="card-img-top" 
+                                style="max-height: 120px; object-fit: contain;"
+                            >
+                        {% else %}
+                            <div 
+                                class="card-img-top d-flex align-items-center justify-content-center" 
+                                style="height: 120px; background-color: #f8f9fa;"
+                            >
+                                <i class="bi bi-card-image" style="font-size: 2rem; color: #adb5bd;"></i>
+                            </div>
+                        {% endif %}
+                    </a>
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <h5 class="card-title mb-3">
+                            <a 
+                                href="{% url 'brand_cars' brand.slug %}" 
+                                class="text-decoration-none text-dark"
+                            >
+                                {{ brand.name }}
+                            </a>
+                        </h5>
+                        <p class="card-text mb-0">
+                            Машин в наличии: <span class="fw-bold">{{ brand.car_count }}</span>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
         {% empty %}
-        <p class="text-center">Нет доступных брендов.</p>
+            <p class="text-center">Нет доступных брендов.</p>
         {% endfor %}
     </div>
 
+    <!-- Вывод списка автомобилей (либо всех, либо выбранного бренда) -->
     <div class="mt-5">
         {% if selected_brand %}
             <h2 class="mb-4">Все автомобили бренда {{ selected_brand.name }}</h2>
@@ -89,50 +114,57 @@
         {% endif %}
 
         {% if cars %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            {% for car in cars %}
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    {% if car.image %}
-                    <img 
-                        src="{{ car.image.url }}" 
-                        class="card-img-top" 
-                        alt="{{ car.name }}"
-                    >
-                    {% else %}
-                    <img 
-                        src="{% static 'no_image.jpg' %}" 
-                        class="card-img-top" 
-                        alt="Нет изображения"
-                    >
-                    {% endif %}
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">{{ car.name }}</h5>
-                        <p class="card-text fw-bold">{{ car.price }} ₽</p>
-                        <div class="mt-auto">
-                            <a href="{% url 'car_detail' car.id %}" class="btn btn-outline-primary w-100">
-                                Подробнее
-                            </a>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for car in cars %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm hover-zoom">
+                        <!-- Оборачиваем изображение в ссылку, чтобы сделать его кликабельным -->
+                        <a href="{% url 'car_detail' car.id %}" class="text-decoration-none text-dark">
+                            {% if car.image %}
+                                <img 
+                                    src="{{ car.image.url }}" 
+                                    class="card-img-top"
+                                    alt="{{ car.name }}"
+                                    style="height: 180px; object-fit: cover;"
+                                >
+                            {% else %}
+                                <img 
+                                    src="{% static 'no_image.jpg' %}" 
+                                    class="card-img-top" 
+                                    alt="Нет изображения"
+                                    style="height: 180px; object-fit: cover;"
+                                >
+                            {% endif %}
+                        </a>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ car.name }}</h5>
+                            <p class="card-text fw-bold">{{ car.price }} ₽</p>
+                            <div class="mt-auto">
+                                <!-- Дополнительная кнопка для перехода на детальную страницу, если нужно -->
+                                <a href="{% url 'car_detail' car.id %}" class="btn btn-outline-primary w-100">
+                                    Подробнее
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div>                
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
         {% else %}
-        <p class="text-center">Автомобили не найдены.</p>
+            <p class="text-center">Автомобили не найдены.</p>
         {% endif %}
 
         {% if selected_brand %}
-        <div class="text-center mt-4">
-            <a href="{% url 'car_list' %}" class="btn btn-outline-danger btn-lg">
-                🔄 Сбросить фильтр
-            </a>
-        </div>
+            <div class="text-center mt-4">
+                <a href="{% url 'car_list' %}" class="btn btn-outline-danger btn-lg">
+                    🔄 Сбросить фильтр
+                </a>
+            </div>
         {% endif %}
     </div>
 </div>
 
+<!-- Раздел "Наши услуги" -->
 <div class="container mt-5">
     <h2 class="mb-4 text-center">Наши услуги</h2>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
@@ -168,10 +200,10 @@
             <h5 class="mt-3">Сервис</h5>
             <p>Техническое обслуживание и ремонт автомобилей.</p>
         </div>
-
     </div>
 </div>
 
+<!-- Раздел "О нас" -->
 <div class="about-section mt-5">
     <div class="dark-overlay">
         <div class="container text-light py-5 text-center">

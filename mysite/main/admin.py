@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, Car, CarImage, Order, Review, TradeInRequest, Brand, Accessory, AccessoryOrder, TestDriveRequest
+from django.utils.html import format_html
 
 # Регистрация пользователя в админке с добавлением поля аватара
 @admin.register(User)
@@ -15,11 +16,18 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('avatar',)}),  # Добавляем поле аватара при создании нового пользователя
     )
 
-# Регистрация брендов в админке
+from .models import Brand
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'is_active')
+    list_display = ('name', 'slug', 'is_active', 'logo_preview')
     prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ('logo_preview',)
+
+    def logo_preview(self, obj):
+        if obj.logo:
+            return format_html('<img src="{}" style="max-height: 50px;"/>', obj.logo.url)
+        return "Нет логотипа"
+    logo_preview.short_description = "Логотип"
 
 # Инлайны для изображений автомобилей
 class CarImageInline(admin.TabularInline):

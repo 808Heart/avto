@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count
 from .models import TestDriveRequest
 from django.contrib.auth.forms import UserCreationForm
+
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -68,12 +69,12 @@ def car_list(request, brand_slug=None):
     })
 
 def car_detail(request, car_id):
-    """ Отображает страницу автомобиля и применяет скидку по Trade-in, если заявка одобрена """
+    """ Отображает страницу автомобиля и применяет скидку по Trade-in, если одобренная заявка существует """
     car = get_object_or_404(Car, id=car_id)
 
+    # Работа с историей просмотров
     if 'history' not in request.session:
         request.session['history'] = []
-
     if car_id not in request.session['history']:
         request.session['history'].insert(0, car_id)
         if len(request.session['history']) > 5:
@@ -81,13 +82,14 @@ def car_detail(request, car_id):
         request.session.modified = True
 
     trade_in_discount = 0
-
     if request.user.is_authenticated:
-        trade_in_request = TradeInRequest.objects.filter(user=request.user, status='approved').first()
+        # Получаем первую одобренную и не использованную заявку Trade-in
+        trade_in_request = TradeInRequest.objects.filter(user=request.user, status='approved', used=False).first()
         if trade_in_request:
-            trade_in_discount = trade_in_request.estimated_price  
+            # Заменяем desired_discount на estimated_price, так как поле называется именно так
+            trade_in_discount = trade_in_request.estimated_price
 
-    final_price = max(car.price - trade_in_discount, 0) 
+    final_price = max(car.price - trade_in_discount, 0)
 
     return render(request, 'main/car_detail.html', {
         'car': car,
@@ -100,39 +102,49 @@ from .models import Order
 
 @login_required
 def profile(request):
-    # Получаем список избранных автомобилей
+    # Избранные автомобили (хранятся в сессии по ключу 'favorites')
     favorite_ids = request.session.get('favorites', [])
     favorites = Car.objects.filter(id__in=favorite_ids)
 
-    # Получаем список автомобилей для сравнения
+    # Избранные аксессуары (если они хранятся в сессии, например, по ключу 'favorite_accessories')
+    favorite_accessory_ids = request.session.get('favorite_accessories', [])
+    favorite_accessories = Accessory.objects.filter(id__in=favorite_accessory_ids)
+
+    # Автомобили для сравнения (хранятся в сессии по ключу 'compare')
     compare_ids = request.session.get('compare', [])
     compare = Car.objects.filter(id__in=compare_ids)
 
-    # Получаем историю просмотров
+    # История просмотров (хранятся в сессии по ключу 'history')
     history_ids = request.session.get('history', [])
     history = Car.objects.filter(id__in=history_ids)
 
-    # Получаем заявки на Trade-In
+    # Заявки на Trade-In
     trade_in_requests = TradeInRequest.objects.filter(user=request.user)
 
+    # Заказы аксессуаров
     accessory_orders = AccessoryOrder.objects.filter(user=request.user)
 
-
+    # Заявки на тест-драйв
     test_drive_requests = TestDriveRequest.objects.filter(user=request.user)
 
+    # Заказы автомобилей
     car_orders = Order.objects.filter(user=request.user)
 
+    # Вычисляем скидку по Trade-In
     trade_in_discount = 0
-    trade_in_request = TradeInRequest.objects.filter(user=request.user, status='approved').first()
+    # Ищем первую одобренную заявку, которая ещё не использована
+    trade_in_request = TradeInRequest.objects.filter(user=request.user, status='approved', used=False).first()
     if trade_in_request:
-        trade_in_discount = trade_in_request.estimated_price  
+        trade_in_discount = trade_in_request.estimated_price
 
+    # Обновляем окончательную цену для заказов, если скидка применяется
     for order in car_orders:
         order.final_price = max(order.car.price - trade_in_discount, 0)
-        order.save()  
+        order.save()
 
-    return render(request, 'main/profile.html', {
+    context = {
         'favorites': favorites,
+        'favorite_accessories': favorite_accessories,
         'compare': compare,
         'history': history,
         'trade_in_requests': trade_in_requests,
@@ -140,7 +152,31 @@ def profile(request):
         'car_orders': car_orders,
         'trade_in_discount': trade_in_discount,
         'test_drive_requests': test_drive_requests,
+    }
+    return render(request, 'main/profile.html', context)
+
+def compare_cars(request):
+    # Получаем список ID автомобилей для сравнения из сессии
+    car_ids = request.session.get('compare', [])
+    cars = list(Car.objects.filter(id__in=car_ids))
+    
+    # Вычисляем общие характеристики
+    common_specs = {}
+    if cars:
+        # Собираем спецификации для тех автомобилей, у которых они заданы
+        specs_list = [car.specifications for car in cars if car.specifications]
+        if specs_list:
+            common_keys = set(specs_list[0].keys())
+            for specs in specs_list[1:]:
+                common_keys &= set(specs.keys())
+            for key in common_keys:
+                common_specs[key] = [car.specifications.get(key, '—') if car.specifications else '—' for car in cars]
+    
+    return render(request, 'main/compare.html', {
+        'cars': cars,
+        'common_specs': common_specs,
     })
+
 
 from .models import TradeInPhoto 
 @login_required
@@ -211,33 +247,68 @@ def delete_review(request, review_id):
     review.delete()
     return redirect('car_detail', car_id=car_id)
 
+@login_required
+def update_nickname(request):
+    if request.method == 'POST':
+        new_nickname = request.POST.get('nickname')
+        if new_nickname:
+            user = request.user
+            user.username = new_nickname
+            user.save()
+    return redirect('profile')
 
 def add_to_compare(request, car_id):
     if 'compare' not in request.session:
         request.session['compare'] = []
-
     if car_id not in request.session['compare']:
         request.session['compare'].append(car_id)
         request.session.modified = True
+    return redirect(request.META.get('HTTP_REFERER', 'profile'))
 
-    return redirect('compare_cars')
-
-
-def remove_from_compare(request, car_id):
-    if 'compare' in request.session and car_id in request.session['compare']:
-        request.session['compare'].remove(car_id)
-        request.session.modified = True
-
-    return redirect('compare_cars')
+@login_required
+def remove_from_cart(request, cart_item_id):
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart__user=request.user)
+    cart_item.delete()
+    return redirect('cart')
 
 
 def compare_cars(request):
+    # Получаем список ID автомобилей для сравнения из сессии
     car_ids = request.session.get('compare', [])
-    cars = Car.objects.filter(id__in=car_ids)
+    cars = list(Car.objects.filter(id__in=car_ids))
+    
+    common_specs = {}
+    if cars:
+        specs_list = [car.specifications for car in cars if car.specifications]
+        if specs_list:
+            common_keys = set(specs_list[0].keys())
+            for specs in specs_list[1:]:
+                common_keys &= set(specs.keys())
+            for key in common_keys:
+                common_specs[key] = [car.specifications.get(key, '—') if car.specifications else '—' for car in cars]
+    
+    return render(request, 'main/compare.html', {
+        'cars': cars,
+        'common_specs': common_specs,
+    })
 
-    return render(request, 'main/compare.html', {'cars': cars})
+@login_required
+def remove_from_compare(request, car_id):
+    """
+    Функция удаляет автомобиль из списка сравнения, хранящегося в сессии.
+    car_id — идентификатор автомобиля, который нужно удалить.
+    """
+    # Получаем список автомобилей для сравнения из сессии (если он отсутствует, получаем пустой список)
+    compare_list = request.session.get('compare', [])
+    
+    # Если переданный car_id есть в списке, удаляем его
+    if car_id in compare_list:
+        compare_list.remove(car_id)
+        request.session['compare'] = compare_list
+        request.session.modified = True
 
-
+    # Перенаправляем пользователя на страницу профиля (или другую, где отображается список сравнения)
+    return redirect('profile')
 def add_to_favorites(request, car_id):
     if 'favorites' not in request.session:
         request.session['favorites'] = []
@@ -267,20 +338,19 @@ def favorites(request):
 def add_accessory_to_favorites(request, accessory_id):
     if 'favorite_accessories' not in request.session:
         request.session['favorite_accessories'] = []
-
     if accessory_id not in request.session['favorite_accessories']:
         request.session['favorite_accessories'].append(accessory_id)
         request.session.modified = True
-
     return redirect('profile')
+
 
 
 def remove_accessory_from_favorites(request, accessory_id):
     if 'favorite_accessories' in request.session and accessory_id in request.session['favorite_accessories']:
         request.session['favorite_accessories'].remove(accessory_id)
         request.session.modified = True
-
     return redirect('profile')
+
 
 
 def accessories(request):
@@ -299,49 +369,62 @@ def buy_accessory(request, accessory_id):
 
     return redirect('profile')
 
-from django.shortcuts import render, redirect
-from .models import Accessory, Cart, CartItem
+
+from django.contrib.contenttypes.models import ContentType
+from .models import Cart, CartItem, Car, Accessory
+
 @login_required
-def add_to_cart(request, accessory_id):
-    accessory = get_object_or_404(Accessory, id=accessory_id)
-
-    # Получаем корзину пользователя (или создаем новую, если ее нет)
+def add_to_cart(request, object_id):
+    # Сначала пробуем GET, если нет – пробуем POST
+    item_type = request.GET.get('type') or request.POST.get('type')
+    
+    if item_type == 'car':
+        model_class = Car
+    elif item_type == 'accessory':
+        model_class = Accessory
+    else:
+        return redirect('cart')
+    
+    # Остальная логика остается без изменений:
+    item_object = get_object_or_404(model_class, id=object_id)
     cart, created = Cart.objects.get_or_create(user=request.user)
-
-    # Проверяем, есть ли уже этот аксессуар в корзине
-    cart_item, created = CartItem.objects.get_or_create(cart=cart, accessory=accessory)
-
-    # Если аксессуар уже есть в корзине, увеличиваем его количество
-    if not created:
+    content_type = ContentType.objects.get_for_model(model_class)
+    cart_item, item_created = CartItem.objects.get_or_create(
+        cart=cart,
+        content_type=content_type,
+        object_id=item_object.id
+    )
+    if not item_created:
         cart_item.quantity += 1
         cart_item.save()
 
-    return redirect('cart')  # перенаправляем в корзину
+    return redirect('cart')
 
 @login_required
 def cart(request):
-    cart = request.session.get('cart', {})
-    car_ids = cart.keys()
-    cars = Car.objects.filter(id__in=car_ids)
-
-    cart_items = []
-    total_price = 0
-
-    for car in cars:
-        quantity = cart[str(car.id)]
-        total_price += car.price * quantity
-        cart_items.append({'car': car, 'quantity': quantity})
-
-    return render(request, 'main/cart.html', {'cart_items': cart_items, 'total_price': total_price})
-
-
+    cart = Cart.objects.filter(user=request.user).first()
+    if cart:
+        cart_items = cart.items.all()
+        total_price = 0
+        for cart_item in cart_items:
+            # Предполагаем, что и Car, и Accessory имеют поля name и price
+            if hasattr(cart_item.item, 'price'):
+                total_price += cart_item.item.price * cart_item.quantity
+    else:
+        cart_items = []
+        total_price = 0
+    return render(request, 'main/cart.html', {
+        'cart_items': cart_items,
+        'total_price': total_price,
+    })
 
 @login_required
 def cancel_order(request, order_id):
-    """ Позволяет пользователю отменить заказ автомобиля """
+    """Позволяет пользователю отменить заказ автомобиля"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
     order.delete()
     return redirect('profile')
+
 from .forms import TestDriveForm
 @login_required
 def test_drive(request):
@@ -373,30 +456,24 @@ from django.http import JsonResponse
 from django.http import JsonResponse
 from .models import Car, Order, TradeInRequest
 from .forms import OrderForm
+
 @login_required
 def checkout(request, car_id):
     car = get_object_or_404(Car, id=car_id)
 
-    # Инициализируем скидку
     trade_in_discount = 0
 
-    # Проверяем наличие одобренной заявки Trade-in
-    trade_in_request = TradeInRequest.objects.filter(user=request.user, status='approved').first()
+    trade_in_request = TradeInRequest.objects.filter(user=request.user, status='approved', used=False).first()
     if trade_in_request:
         trade_in_discount = trade_in_request.estimated_price
 
-    # Если форма отправлена
     if request.method == 'POST':
-        # Получаем данные из формы и создаем заказ
         name = request.POST.get('name')
         email = request.POST.get('email')
         address = request.POST.get('address')
         phone = request.POST.get('phone')
+        final_price = max(car.price - trade_in_discount, 0)
 
-        # Рассчитываем финальную цену с учетом скидки
-        final_price = max(car.price - trade_in_discount, 0)  # Не допускаем отрицательной цены
-
-        # Создаем заказ
         order = Order.objects.create(
             user=request.user,
             car=car,
@@ -404,13 +481,15 @@ def checkout(request, car_id):
             email=email,
             address=address,
             phone=phone,
-            final_price=final_price,  # Цена с учётом скидки
+            final_price=final_price
         )
-        
-        # Перенаправляем пользователя в его профиль
+
+        if trade_in_request:
+            trade_in_request.used = True
+            trade_in_request.save()
+
         return redirect('profile')
-    
-    # Отправляем данные о машине на страницу оформления
+
     return render(request, 'main/checkout.html', {'car': car})
 
 
@@ -422,16 +501,20 @@ def accessory_list(request):
     return render(request, 'main/accessory_list.html', {'accessories': accessories})
 
 @login_required
-def remove_from_cart(request, accessory_id):
-    # Получаем корзину пользователя
-    cart = Cart.objects.filter(user=request.user).first()
+def remove_from_cart(request, cart_item_id):
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, cart__user=request.user)
+    cart_item.delete()
+    return redirect('cart')
 
-    if cart:
-        # Находим item корзины с данным аксессуаром
-        cart_item = CartItem.objects.filter(cart=cart, accessory__id=accessory_id).first()
+from .forms import AvatarUpdateForm
 
-        if cart_item:
-            # Удаляем элемент из корзины
-            cart_item.delete()
-
-    return redirect('cart')  # Перенаправляем на страницу с корзиной
+@login_required
+def update_avatar(request):
+    if request.method == 'POST':
+        form = AvatarUpdateForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')  
+    else:
+        form = AvatarUpdateForm(instance=request.user)
+    return render(request, 'main/update_avatar.html', {'form': form})

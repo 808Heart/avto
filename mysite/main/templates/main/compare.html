@@ -1,43 +1,45 @@
 {% extends 'main/base.html' %}
+{% load static %}
 
 {% block title %}Сравнение автомобилей{% endblock %}
 
 {% block content %}
+<div class="container my-5">
     <h1 class="text-center mb-4">Сравнение автомобилей</h1>
-
     {% if cars %}
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Название</th>
-                        <th>Цена</th>
-                        <th>Фото</th>
-                        <th>Действие</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for car in cars %}
-                    <tr>
-                        <td>{{ car.name }}</td>
-                        <td>{{ car.price }} ₽</td>
-                        <td><img src="{{ car.image.url }}" width="100" alt="{{ car.name }}"></td>
-                        <td>
-                            <a href="{% url 'remove_from_compare' car.id %}" class="btn btn-danger btn-sm">
-                                Удалить
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% if common_specs %}
+            <div class="table-responsive">
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Характеристика</th>
+                            {% for car in cars %}
+                                <th>{{ car.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for spec, values in common_specs.items %}
+                            <tr>
+                                <td><strong>{{ spec }}</strong></td>
+                                {% for value in values %}
+                                    <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>Общие характеристики не найдены. Но у вас выбраны следующие автомобили для сравнения:</p>
+            <ul>
+                {% for car in cars %}
+                    <li>{{ car.name }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
     {% else %}
-        <p class="text-center">Вы ещё не выбрали автомобили для сравнения.</p>
+        <p>Вы ещё не добавили автомобили для сравнения.</p>
     {% endif %}
-
-    <br>
-    <div class="d-flex justify-content-center">
-        <a href="{% url 'car_list' %}" class="btn btn-secondary btn-lg">Вернуться в каталог</a>
-    </div>
+</div>
 {% endblock %}

@@ -23,12 +23,13 @@
                     <p class="fw-bold">Цена: {{ accessory.price }} ₽</p>
                     <p>В наличии: {{ accessory.stock }}</p>
 
-                    <!-- Кнопка "Добавить в корзину" -->
-                    <div class="d-flex gap-3 mt-auto">
-                        <a href="{% url 'add_to_cart' accessory.id %}" class="btn btn-success btn-lg w-100">
-                            Добавить в корзину
-                        </a>                        
-                    </div>
+                    <form action="{% url 'add_to_cart' accessory.id %}?type=accessory" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-cart-plus"></i> В корзину
+                        </button>
+                    </form>
+                    
 
                     <!-- Кнопка "Добавить в избранное" -->
                     <div class="d-flex gap-3 mt-2">

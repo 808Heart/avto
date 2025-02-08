@@ -1,0 +1,22 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Обновление аватара{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="text-center mb-4">Обновить аватар</h1>
+    <div class="card p-4 shadow-sm">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Сохранить изменения</button>
+            </div>
+        </form>
+    </div>
+    <div class="mt-4 text-center">
+        <a href="{% url 'profile' %}" class="btn btn-outline-secondary">Вернуться в личный кабинет</a>
+    </div>
+</div>
+{% endblock %}

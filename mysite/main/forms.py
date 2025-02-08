@@ -18,6 +18,14 @@ class TradeInForm(forms.ModelForm):
         super(TradeInForm, self).__init__(*args, **kwargs)
         self.fields['photo'].required = False  # Сделаем поле фотографий необязательным
 
+class AvatarUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['avatar']
+        widgets = {
+            'avatar': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User  # Now using the custom user model dynamically

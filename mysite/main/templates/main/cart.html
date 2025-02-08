@@ -1,51 +1,50 @@
 {% extends 'main/base.html' %}
-
-
 {% load static %}
 
 {% block title %}Корзина{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container my-5">
     <h1 class="text-center mb-4">Корзина</h1>
 
     {% if cart_items %}
         <div class="list-group">
-            {% for item in cart_items %}
+            {% for cart_item in cart_items %}
                 <div class="list-group-item d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                        {% if item.car.image %}
-                            <img src="{{ item.car.image.url }}" alt="{{ item.car.name }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                        {% if cart_item.item and cart_item.item.image %}
+                            <img src="{{ cart_item.item.image.url }}" alt="{{ cart_item.item.name }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
                         {% else %}
                             <img src="{% static 'no_image.jpg' %}" alt="Нет изображения" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
                         {% endif %}
                         <div class="ms-3">
-                            <h5>{{ item.car.name }}</h5>
-                            <p>Цена: {{ item.car.price }} ₽</p>
-                            <p>Количество: {{ item.quantity }}</p>
+                            {% if cart_item.item %}
+                                <h5 class="mb-1">{{ cart_item.item.name }}</h5>
+                                <p class="mb-0">Цена: <strong>{{ cart_item.item.price }} ₽</strong></p>
+                            {% else %}
+                                <h5 class="mb-1">Товар не найден</h5>
+                            {% endif %}
+                            <p class="mb-0">Количество: <strong>{{ cart_item.quantity }}</strong></p>
                         </div>
                     </div>
-                    <a href="{% url 'remove_from_cart' item.car.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                    <a href="{% url 'remove_from_cart' cart_item.id %}" class="btn btn-danger btn-sm">Удалить</a>
                 </div>
             {% endfor %}
         </div>
 
-        <div class="text-center mt-4">
+        <div class="mt-4 text-center">
             <h4><strong>Общая стоимость: {{ total_price }} ₽</strong></h4>
         </div>
 
-        <div class="text-center mt-4">
+        <div class="mt-4 d-flex justify-content-center gap-2">
             <a href="{% url 'car_list' %}" class="btn btn-outline-secondary">Продолжить покупки</a>
-            <!-- Сделаем для каждого товара отдельную ссылку на оформление заказа -->
-            {% for item in cart_items %}
-                <a href="{% url 'checkout' item.car.id %}" class="btn btn-success">Оформить заказ для {{ item.car.name }}</a>
-            {% endfor %}
+            <!-- Если есть оформление заказа, добавьте ссылку здесь -->
         </div>
     {% else %}
         <div class="alert alert-warning text-center" role="alert">
             Корзина пуста.
         </div>
-        <div class="text-center mt-4">
+        <div class="mt-4 text-center">
             <a href="{% url 'car_list' %}" class="btn btn-outline-secondary">Перейти в каталог</a>
         </div>
     {% endif %}
