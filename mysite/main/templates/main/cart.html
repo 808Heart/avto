@@ -38,7 +38,7 @@
 
         <div class="mt-4 d-flex justify-content-center gap-2">
             <a href="{% url 'car_list' %}" class="btn btn-outline-secondary">Продолжить покупки</a>
-            <!-- Если есть оформление заказа, добавьте ссылку здесь -->
+            <a href="{% url 'checkout_cart' %}" class="btn btn-success">Купить всё</a>
         </div>
     {% else %}
         <div class="alert alert-warning text-center" role="alert">

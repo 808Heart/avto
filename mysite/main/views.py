@@ -357,6 +357,24 @@ def accessories(request):
     accessories = Accessory.objects.all()  
     return render(request, 'main/accessories.html', {'accessories': accessories})
 
+@login_required
+def accessory_orders_page(request):
+    """
+    Отображает список всех заказов аксессуаров текущего пользователя.
+    """
+    accessory_orders = AccessoryOrder.objects.filter(user=request.user)
+    return render(request, 'main/accessory_orders.html', {
+        'accessory_orders': accessory_orders
+    })
+
+@login_required
+def cancel_accessory_order(request, order_id):
+    # Получаем заказ аксессуара, принадлежащий текущему пользователю
+    order = get_object_or_404(AccessoryOrder, id=order_id, user=request.user)
+    # Удаляем заказ, если он находится в состоянии "pending" (ожидает обработки)
+    if order.status == "pending":
+        order.delete()
+    return redirect('profile')
 
 @login_required
 def buy_accessory(request, accessory_id):
@@ -518,3 +536,57 @@ def update_avatar(request):
     else:
         form = AvatarUpdateForm(instance=request.user)
     return render(request, 'main/update_avatar.html', {'form': form})
+
+@login_required
+def checkout_cart(request):
+    # Получаем корзину пользователя (если корзина отсутствует, редирект в каталог)
+    cart = Cart.objects.filter(user=request.user).first()
+    if not cart:
+        return redirect('car_list')
+
+    user = request.user
+    # Используем данные пользователя или задаём значения по умолчанию
+    default_name = user.username
+    default_email = user.email if user.email else "noemail@example.com"
+    default_address = "Адрес не указан"
+    default_phone = "Телефон не указан"
+
+    # Если у пользователя есть одобренная заявка Trade-In (и скидка ещё не использована), получаем скидку
+    trade_in_request = TradeInRequest.objects.filter(user=user, status='approved', used=False).first()
+    trade_in_discount = trade_in_request.estimated_price if trade_in_request else 0
+
+    # Обрабатываем каждый элемент корзины
+    for cart_item in cart.items.all():
+        item = cart_item.item  # это может быть Car или Accessory
+        if not item:
+            continue  # если объект не найден, пропускаем
+
+        if isinstance(item, Car):
+            final_price = max(item.price - trade_in_discount, 0)
+            Order.objects.create(
+                user=user,
+                car=item,
+                status='pending',
+                final_price=final_price,
+                name=default_name,
+                email=default_email,
+                address=default_address,
+                phone=default_phone
+            )
+        elif isinstance(item, Accessory):
+            AccessoryOrder.objects.create(
+                user=user,
+                accessory=item,
+                quantity=cart_item.quantity,
+                status='pending'
+            )
+    # Очищаем корзину после оформления заказа
+    cart.items.all().delete()
+
+    # Если использовалась заявка Trade-In, отмечаем её как использованную
+    if trade_in_request:
+        trade_in_request.used = True
+        trade_in_request.save()
+
+    # Перенаправляем пользователя, например, в профиль (где можно показать заказы)
+    return redirect('profile')
